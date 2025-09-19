@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from PIL import Image, ImageTk  # Importar correctamente Pillow
 
 class SistemaAsistenciaApp(tk.Tk):
     def __init__(self):
@@ -10,16 +11,24 @@ class SistemaAsistenciaApp(tk.Tk):
         
         # Dividir ventana en dos: Panel Izquierdo (menú) y Derecho (contenido)
         self.columnconfigure(0, weight=1, minsize=250)  # Panel izquierdo (30%)
-        self.columnconfigure(1, weight=15)               # Panel derecho (70%)
+        self.columnconfigure(1, weight=15)              # Panel derecho (70%)
         self.rowconfigure(0, weight=1)
 
         # --- Panel Izquierdo ---
         left_frame = tk.Frame(self, bg="#1E3A5F")  # azul oscuro
         left_frame.grid(row=0, column=0, sticky="nsew")
 
-        # Logo (puede ser reemplazado por imagen)
-        logo_label = tk.Label(left_frame, text="📘", font=("Arial", 40), bg="#1E3A5F", fg="white")
-        logo_label.pack(pady=20)
+        # Logo (imagen)
+        try:
+            logo = Image.open("logo.png")  # Asegúrate de que el archivo esté en la misma carpeta
+            logo = logo.resize((100, 100))  # Ajusta el tamaño si lo deseas
+            logo_img = ImageTk.PhotoImage(logo)
+            logo_label = tk.Label(left_frame, image=logo_img, bg="#1E3A5F")
+            logo_label.image = logo_img  # Evita que la imagen se elimine por el recolector de basura
+            logo_label.pack(pady=20)
+        except Exception as e:
+            logo_label = tk.Label(left_frame, text="LOGO", font=("Arial", 40), bg="#1E3A5F", fg="white")
+            logo_label.pack(pady=20)
 
         # Nombre de la app
         title_label = tk.Label(left_frame, text="Sistema de Asistencia\nCesun", 
@@ -37,7 +46,6 @@ class SistemaAsistenciaApp(tk.Tk):
         # --- Panel Derecho (contenido en blanco por ahora) ---
         right_frame = tk.Frame(self, bg="white")
         right_frame.grid(row=0, column=1, sticky="nsew")
-
 
 if __name__ == "__main__":
     app = SistemaAsistenciaApp()
