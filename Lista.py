@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
-from PIL import Image, ImageTk  # Importar correctamente Pillow
+from PIL import Image, ImageTk
+from registro import RegistroEstudiantes
 
 class SistemaAsistenciaApp(tk.Tk):
     def __init__(self):
@@ -8,17 +9,17 @@ class SistemaAsistenciaApp(tk.Tk):
         self.title("Sistema de Asistencia Cesun")
         self.geometry("1100x700")
         self.config(bg="#f0f0f0")
-        
-        # Dividir ventana en dos: Panel Izquierdo (menú) y Derecho (contenido)
-        self.columnconfigure(0, weight=1, minsize=250)  # Panel izquierdo (30%)
-        self.columnconfigure(1, weight=15)              # Panel derecho (70%)
+
+        # Estructura de columnas
+        self.columnconfigure(0, weight=1, minsize=250)
+        self.columnconfigure(1, weight=15)
         self.rowconfigure(0, weight=1)
 
         # --- Panel Izquierdo ---
-        left_frame = tk.Frame(self, bg="#1E3A5F")  # azul oscuro
+        left_frame = tk.Frame(self, bg="#1E3A5F")
         left_frame.grid(row=0, column=0, sticky="nsew")
 
-        # Logo (imagen)
+        # Logo
         try:
             logo = Image.open("logo.png")
             logo = logo.resize((100, 100))
@@ -30,13 +31,16 @@ class SistemaAsistenciaApp(tk.Tk):
             logo_label = tk.Label(left_frame, text="LOGO", font=("Arial", 40), bg="#1E3A5F", fg="white")
             logo_label.pack(pady=20)
 
+        # Título
         title_label = tk.Label(left_frame, text="Sistema de Asistencia\nCesun",
                                font=("Arial", 14, "bold"), bg="#1E3A5F", fg="white")
         title_label.pack(pady=10)
 
+        # --- Panel Derecho ---
         self.right_frame = tk.Frame(self, bg="white")
         self.right_frame.grid(row=0, column=1, sticky="nsew")
 
+        # Funciones de navegación
         def mostrar_inicio():
             self._limpiar_panel()
             tk.Label(self.right_frame, text="Bienvenido al Sistema de Asistencia CESUN",
@@ -56,6 +60,7 @@ class SistemaAsistenciaApp(tk.Tk):
             tk.Label(self.right_frame, text="Lista de Estudiantes (en construcción)",
                      font=("Arial", 16), bg="white").pack(pady=20)
 
+        # Botones del menú
         botones_funciones = {
             "Inicio": mostrar_inicio,
             "Registro": mostrar_registro,
@@ -70,9 +75,11 @@ class SistemaAsistenciaApp(tk.Tk):
                             command=accion)
             btn.pack(fill="x", pady=5, padx=20)
 
-        # --- Panel Derecho (contenido en blanco por ahora) ---
-        right_frame = tk.Frame(self, bg="white")
-        right_frame.grid(row=0, column=1, sticky="nsew")
+        mostrar_inicio()
+
+    def _limpiar_panel(self):
+        for widget in self.right_frame.winfo_children():
+            widget.destroy()
 
 if __name__ == "__main__":
     app = SistemaAsistenciaApp()
