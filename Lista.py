@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from PIL import Image, ImageTk
 from registro import RegistroEstudiantes
+from Pase_lista import AsistenciaApp
 
 class SistemaAsistenciaApp(tk.Tk):
     def __init__(self):
@@ -52,8 +53,7 @@ class SistemaAsistenciaApp(tk.Tk):
 
         def mostrar_asistencia():
             self._limpiar_panel()
-            tk.Label(self.right_frame, text="Módulo de Asistencia (en construcción)",
-                     font=("Arial", 16), bg="white").pack(pady=20)
+            AsistenciaApp(self.right_frame)
 
         def mostrar_lista():
             self._limpiar_panel()
