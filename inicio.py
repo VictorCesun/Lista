@@ -5,7 +5,7 @@ from tkinter import ttk
 from PIL import Image, ImageTk
 from registro import RegistroEstudiantes
 from Pase_lista import PantallaAsistencia
-from lista import ListaEstudiantes
+from Lista import ListaEstudiantes
 
 
 class SistemaAsistenciaApp(tk.Tk):

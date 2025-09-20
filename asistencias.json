@@ -3,16 +3,22 @@
         "Matricula": "220320230",
         "Nombre": "Owen Perez Morales",
         "Materia": "Calculo",
-        "Fecha": "2025-09-19 17:25:55",
+        "Fecha": "2025-09-19 18:04:35",
         "Dia": "19/09/2025",
-        "Asistencia": "A"
+        "Asistencia": "A",
+        "Grupo": "10IDPRMA",
+        "Parcial": 1,
+        "Semana": 3
     },
     {
-        "Matricula": "220320230",
-        "Nombre": "Owen Perez Morales",
+        "Matricula": "220312042",
+        "Nombre": "Victor Alberto Blanco Figueroa",
         "Materia": "Calculo",
-        "Fecha": "2025-09-19 17:30:29",
+        "Grupo": "10IDPRMA",
+        "Fecha": "2025-09-19 18:04:35",
         "Dia": "19/09/2025",
-        "Asistencia": "F"
+        "Asistencia": "F",
+        "Parcial": 1,
+        "Semana": 3
     }
 ]
