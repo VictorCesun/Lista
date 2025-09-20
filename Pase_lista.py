@@ -178,7 +178,7 @@ class PantallaAsistencia(tk.Frame):
         inicio_parcial, fin_parcial = self.PARCIALES.get(parcial, (0,5))
         semana_global = inicio_parcial + (semana_local - 1)
         inicio_semana = self.INICIO_CUATRIMESTRE + timedelta(weeks=semana_global)
-        return [inicio_semana + timedelta(days=i) for i in range(5)]
+        return [inicio_semana + timedelta(days=i) for i in range(7)]
 
 
     def cargar_tabla(self):
