@@ -34,13 +34,16 @@ class PantallaAsistencia(tk.Frame):
         # cargar registros existentes desde archivo (si existen)
         self._cargar_asistencias_desde_archivo()
 
+        # calcular en qué parcial/semana estamos HOY
+        parcial_hoy, semana_hoy = self.fecha_a_parcial_semana(date.today())
+        self.parcial_var.set(parcial_hoy)
+        self.semana_var.set(semana_hoy)
+
         # crear UI
         self._crear_pantalla_asistencia()
 
         # primera carga de tabla
         self.cargar_tabla()
-
-
     # ---------------- Helpers de fechas / parciales ----------------
     def _parse_fecha_str(self, fecha_str):
         """Intenta parsear dd/mm/YYYY o YYYY-mm-dd y devuelve date o None."""
@@ -179,23 +182,29 @@ class PantallaAsistencia(tk.Frame):
 
 
     def cargar_tabla(self):
-        # limpiar tree
+        # volver a leer estudiantes.json por si hubo cambios
+        try:
+            with open("estudiantes.json", "r", encoding="utf-8") as f:
+                self.estudiantes_json = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            self.estudiantes_json = []
+
+        self.alumnos = [f"{e.get('Nombre completo','')} {e.get('Apellidos','')}".strip() for e in self.estudiantes_json]
+
+        # limpiar filas previas
         for it in self.tree.get_children():
             self.tree.delete(it)
+
         # limpiar columnas previas
-        try:
-            cols_prev = list(self.tree["columns"])
-            for c in cols_prev:
-                self.tree.heading(c, text="")
-                self.tree.column(c, width=0)
-        except Exception:
-            pass
+        for col in self.tree["columns"]:
+            self.tree.heading(col, text="")
+            self.tree.column(col, width=0)
+        self.tree["columns"] = ()
 
         parcial = int(self.parcial_var.get())
         semana_local = int(self.semana_var.get())
 
         dias_date = self.obtener_dias_de_semana_segun_parcial(parcial, semana_local)
-        # claves internas dd/mm/YYYY
         self.dias_semana = [d.strftime("%d/%m/%Y") for d in dias_date]
 
         # encabezados visuales (en español)
@@ -214,26 +223,23 @@ class PantallaAsistencia(tk.Frame):
         # asegurar que todos los alumnos aparezcan aunque no tengan registros
         for estudiante in self.estudiantes_json:
             nombre = f"{estudiante.get('Nombre completo','')} {estudiante.get('Apellidos','')}".strip()
-            if nombre == "":
+            if not nombre:
                 continue
             if nombre not in self.asistencias[key]:
-                # inicializar fechas vacías
                 self.asistencias[key][nombre] = {fecha: "" for fecha in self.dias_semana}
             else:
-                # asegurar que existan todas las fechas en caso de que falte alguna
                 for fecha in self.dias_semana:
                     if fecha not in self.asistencias[key][nombre]:
                         self.asistencias[key][nombre][fecha] = ""
 
-        # poblar filas respetando el orden de estudiantes_json para coherencia
+        # poblar filas
         for estudiante in self.estudiantes_json:
             nombre = f"{estudiante.get('Nombre completo','')} {estudiante.get('Apellidos','')}".strip()
-            if nombre == "":
+            if not nombre:
                 continue
             registros = self.asistencias[key].get(nombre, {fecha: "" for fecha in self.dias_semana})
-            valores = [nombre] + [ registros.get(fecha,"") for fecha in self.dias_semana ]
+            valores = [nombre] + [registros.get(fecha,"") for fecha in self.dias_semana]
             self.tree.insert("", "end", values=valores)
-
 
     # ----------------- Interacción: editar celda (solo día actual) -----------------
     def on_cell_click(self, event):

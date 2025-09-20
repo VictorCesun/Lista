@@ -18,5 +18,25 @@
         "Materia": "Calculo",
         "Programa": "Desarrollo de sofware",
         "Docente": "Mario"
+    },
+    {
+        "Nombre completo": "a",
+        "Apellidos": "aaaas",
+        "Matricula": "ada",
+        "Correo": "d",
+        "Grupo": "dasd",
+        "Materia": "asdadsdad",
+        "Programa": "asdasdasda",
+        "Docente": "adadsa"
+    },
+    {
+        "Nombre completo": "oiu",
+        "Apellidos": "oiu",
+        "Matricula": "12eqwd",
+        "Correo": "poi",
+        "Grupo": "opi",
+        "Materia": "pio",
+        "Programa": "oi",
+        "Docente": "u"
     }
 ]
