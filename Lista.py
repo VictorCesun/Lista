@@ -1,102 +1,78 @@
 import tkinter as tk
-import json
-import calendar
 from tkinter import ttk
-from PIL import Image, ImageTk
-from registro import RegistroEstudiantes
-from Pase_lista import PantallaAsistencia
+import json
 
-class SistemaAsistenciaApp(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.title("Sistema de Asistencia Cesun")
-        self.geometry("1100x700")
-        self.config(bg="#f0f0f0")
-        
-        self.estudiantes_json = self._cargar_estudiantes()
-        
+class ListaEstudiantes(tk.Frame):
+    def __init__(self, master):
+        super().__init__(master, bg="white")
+        self.pack(fill="both", expand=True)
 
-        # Estructura de columnas
-        self.columnconfigure(0, weight=1, minsize=250)
-        self.columnconfigure(1, weight=15)
-        self.rowconfigure(0, weight=1)
+        tk.Label(self, text="Resumen de Asistencia", font=("Arial", 16, "bold"), bg="white").pack(pady=10)
 
-        # --- Panel Izquierdo ---
-        left_frame = tk.Frame(self, bg="#1E3A5F")
-        left_frame.grid(row=0, column=0, sticky="nsew")
+        # Filtro
+        filtro_frame = tk.Frame(self, bg="white")
+        filtro_frame.pack(pady=5)
+        tk.Label(filtro_frame, text="Filtrar:", bg="white").pack(side="left", padx=5)
+        self.filtro_var = tk.StringVar(value="Todos")
+        opciones = ["Todos", "En riesgo", "Normales"]
+        filtro_menu = ttk.Combobox(filtro_frame, textvariable=self.filtro_var, values=opciones, state="readonly", width=15)
+        filtro_menu.pack(side="left")
+        filtro_menu.bind("<<ComboboxSelected>>", lambda e: self.mostrar_tabla())
 
-        # Logo
-        try:
-            logo = Image.open("logo.png")
-            logo = logo.resize((100, 100))
-            logo_img = ImageTk.PhotoImage(logo)
-            logo_label = tk.Label(left_frame, image=logo_img, bg="#1E3A5F")
-            logo_label.image = logo_img
-            logo_label.pack(pady=20)
-        except:
-            logo_label = tk.Label(left_frame, text="LOGO", font=("Arial", 40), bg="#1E3A5F", fg="white")
-            logo_label.pack(pady=20)
+        # Tabla
+        self.tabla_frame = tk.Frame(self, bg="white")
+        self.tabla_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        self.tree = ttk.Treeview(self.tabla_frame, columns=["Matricula", "Nombre", "Asistencia"], show="headings", height=20)
+        for col in ["Matricula", "Nombre", "Asistencia"]:
+            self.tree.heading(col, text=col)
+            self.tree.column(col, width=150, anchor="center")
+        self.tree.pack(fill="both", expand=True)
 
-        # Título
-        title_label = tk.Label(left_frame, text="Sistema de Asistencia\nCesun",
-                               font=("Arial", 14, "bold"), bg="#1E3A5F", fg="white")
-        title_label.pack(pady=10)
+        # Scroll
+        scrollbar = ttk.Scrollbar(self.tabla_frame, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side="right", fill="y")
 
-        # --- Panel Derecho ---
-        self.right_frame = tk.Frame(self, bg="white")
-        self.right_frame.grid(row=0, column=1, sticky="nsew")
+        self.tree.tag_configure("riesgo", foreground="red")
+        self.mostrar_tabla()
 
-        # Funciones de navegación
-        def mostrar_inicio():
-            self._limpiar_panel()
-            tk.Label(self.right_frame, text="Bienvenido al Sistema de Asistencia CESUN",
-                     font=("Arial", 16), bg="white").pack(pady=20)
+    def mostrar_tabla(self):
+        self.tree.delete(*self.tree.get_children())
+        filtro = self.filtro_var.get()
 
-        def mostrar_registro():
-            self._limpiar_panel()
-            RegistroEstudiantes(self.right_frame)
-
-        def mostrar_asistencia():
-            self._limpiar_panel()
-            PantallaAsistencia(self.right_frame, self.estudiantes_json)
-
-        def mostrar_lista():
-            self._limpiar_panel()
-            tk.Label(self.right_frame, text="Lista de Estudiantes (en construcción)",
-                     font=("Arial", 16), bg="white").pack(pady=20)
-
-        # Botones del menú
-        botones_funciones = {
-            "Inicio": mostrar_inicio,
-            "Registro": mostrar_registro,
-            "Asistencia": mostrar_asistencia,
-            "Lista": mostrar_lista
-        }
-
-        for texto, accion in botones_funciones.items():
-            btn = tk.Button(left_frame, text=texto, font=("Arial", 12),
-                            bg="#2E5A88", fg="white", relief="flat",
-                            activebackground="#4A90E2", activeforeground="white",
-                            command=accion)
-            btn.pack(fill="x", pady=5, padx=20)
-
-        mostrar_inicio()
-
-    def _limpiar_panel(self):
-        for widget in self.right_frame.winfo_children():
-            widget.destroy()
-            
-    def _cargar_estudiantes(self):
         try:
             with open("estudiantes.json", "r", encoding="utf-8") as f:
-                return json.load(f)
-        except FileNotFoundError:
-            print("⚠ No se encontró el archivo estudiantes.json")
-            return []
-        except json.JSONDecodeError:
-            print("⚠ Error en el formato del archivo estudiantes.json")
-            return []
+                estudiantes = json.load(f)
+            with open("asistencias.json", "r", encoding="utf-8") as f:
+                registros = json.load(f)
+        except:
+            estudiantes = []
+            registros = []
 
-if __name__ == "__main__":
-    app = SistemaAsistenciaApp()
-    app.mainloop()
+        # Agrupar asistencias por matrícula
+        conteo = {}
+        for est in estudiantes:
+            mat = est.get("Matricula")
+            conteo[mat] = {"nombre": f"{est.get('Nombre completo', '')} {est.get('Apellidos', '')}".strip(),
+                           "faltas": 0, "total": 0}
+
+        for reg in registros:
+            mat = reg.get("Matricula")
+            if mat in conteo:
+                conteo[mat]["total"] += 1
+                if reg.get("Asistencia") == "F":
+                    conteo[mat]["faltas"] += 1
+
+        for mat, datos in conteo.items():
+            total = datos["total"]
+            faltas = datos["faltas"]
+            porcentaje = round(100 * (total - faltas) / total, 1) if total > 0 else 0
+
+            if filtro == "En riesgo" and porcentaje >= 80:
+                continue
+            if filtro == "Normales" and porcentaje < 80:
+                continue
+
+            fila = self.tree.insert("", "end", values=[mat, datos["nombre"], f"{porcentaje}%"])
+            if porcentaje < 80:
+                self.tree.item(fila, tags=("riesgo",))

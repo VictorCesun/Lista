@@ -8,5 +8,15 @@
         "Materia": "Calculo",
         "Programa": "Desarrollo de sofware",
         "Docente": "Mario"
+    },
+    {
+        "Nombre completo": "Victor Alberto",
+        "Apellidos": "Blanco Figueroa",
+        "Matricula": "220312042",
+        "Correo": "Victor@gmail.com",
+        "Grupo": "10IDPRMA",
+        "Materia": "Calculo",
+        "Programa": "Desarrollo de sofware",
+        "Docente": "Mario"
     }
 ]
