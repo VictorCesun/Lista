@@ -1,161 +1,221 @@
+import calendar
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
+from PIL import Image, ImageTk
 import datetime
+import json
 
-class AsistenciaApp(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.title("Sistema de Asistencia - Cesun")
-        self.geometry("1050x650")
+class PantallaAsistencia(tk.Frame):
+    def __init__(self, master, estudiantes_json):
+        super().__init__(master, bg="white")
+        self.master = master
+        self.estudiantes_json = estudiantes_json
 
-        # ================== FECHA DEL SISTEMA ==================
-        self.dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]
-        hoy = datetime.datetime.today().weekday()  # 0 = lunes ... 6 = domingo
-        self.dia_actual = self.dias[hoy] if hoy < 5 else None  # Solo lunes a viernes
+        self.alumnos = [f"{e['Nombre completo']} {e['Apellidos']}" for e in self.estudiantes_json]
 
-        # ================== DATOS INICIALES ==================
-        self.semanas = ["Semana 1", "Semana 2", "Semana 3", "Semana 4"]
-        self.parciales = ["1er Parcial", "2do Parcial", "3er Parcial"]
-        self.current_semana = 0
-        self.current_parcial = 0
+        self.semana_var = tk.IntVar(value=1)
+        self.parcial_var = tk.IntVar(value=1)
+        self.asistencias = {}  # {(semana, parcial): { alumno: {fecha: valor} } }
 
-        # Datos en memoria: datos[parcial][semana][alumno][dia]
-        self.datos = self.generar_datos_ejemplo()
+        # 🔹 Nuevo: cargar lo que ya exista en asistencias.json
+        self.cargar_asistencias_json()
 
-        # ================== DATOS SUPERIORES ==================
-        frame_datos = tk.Frame(self, pady=10)
-        frame_datos.pack(fill="x")
+        self.pack(expand=True, fill="both")
+        self.crear_pantalla_asistencia()
 
-        tk.Label(frame_datos, text="Docente:", font=("Arial", 10, "bold")).grid(row=0, column=0, padx=5, sticky="w")
-        self.lbl_docente = tk.Label(frame_datos, text="Juan Pérez")
-        self.lbl_docente.grid(row=0, column=1, padx=5, sticky="w")
+    def cargar_asistencias_json(self):
+        try:
+            with open("asistencias.json", "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return
 
-        tk.Label(frame_datos, text="Grupo:", font=("Arial", 10, "bold")).grid(row=0, column=2, padx=5, sticky="w")
-        self.lbl_grupo = tk.Label(frame_datos, text="3A")
-        self.lbl_grupo.grid(row=0, column=3, padx=5, sticky="w")
+        # Reestructuramos el archivo en el formato que usa la app
+        for registro in data:
+            alumno = registro["Nombre"]
+            fecha = registro["Dia"]
+            valor = registro["Asistencia"]
 
-        tk.Label(frame_datos, text="Parcial:", font=("Arial", 10, "bold")).grid(row=0, column=4, padx=5, sticky="w")
-        self.combo_parcial = ttk.Combobox(frame_datos, values=self.parciales, state="readonly")
-        self.combo_parcial.current(self.current_parcial)
-        self.combo_parcial.grid(row=0, column=5, padx=5)
-        self.combo_parcial.bind("<<ComboboxSelected>>", self.cambiar_parcial)
+            # clave de control (parcial fijo, semana fija → podrías adaptarlo mejor si lo manejas en JSON)
+            key = (1, 1)  # 👈 aquí puedes mapear con parcial/semana real si lo guardas
+            if key not in self.asistencias:
+                self.asistencias[key] = {}
+            if alumno not in self.asistencias[key]:
+                self.asistencias[key][alumno] = {}
+            self.asistencias[key][alumno][fecha] = valor
 
-        # Botón Guardar
-        self.btn_guardar = tk.Button(frame_datos, text="Guardar", command=self.guardar)
-        self.btn_guardar.grid(row=0, column=6, padx=10)
 
-        # Separador
-        ttk.Separator(self, orient="horizontal").pack(fill="x", padx=10, pady=10)
+    def crear_pantalla_asistencia(self):
+        # Datos superiores
+        top_frame = tk.Frame(self, bg="white", pady=10)
+        top_frame.pack(fill="x")
 
-        # ================== TABLA DE ASISTENCIA ==================
-        frame_tabla = tk.Frame(self)
-        frame_tabla.pack(fill="both", expand=True)
+        tk.Label(top_frame, text="Docente:", bg="white").grid(row=0, column=0, padx=5, sticky="w")
+        docente_valor = self.estudiantes_json[0].get("Docente", "Ejemplo Docente") if self.estudiantes_json else "Ejemplo Docente"
+        self.docente_var = tk.StringVar(value=docente_valor)
+        tk.Entry(top_frame, textvariable=self.docente_var).grid(row=0, column=1, padx=5)
 
-        self.columnas = ["Alumno"] + self.dias
-        self.tree = ttk.Treeview(frame_tabla, columns=self.columnas, show="headings", height=15)
-        for col in self.columnas:
+        tk.Label(top_frame, text="Grupo:", bg="white").grid(row=0, column=2, padx=5, sticky="w")
+        grupo_valor = self.estudiantes_json[0].get("Grupo", "Grupo 1") if self.estudiantes_json else "Grupo 1"
+        self.grupo_var = tk.StringVar(value=grupo_valor)
+        tk.Entry(top_frame, textvariable=self.grupo_var).grid(row=0, column=3, padx=5)
+
+        tk.Label(top_frame, text="Parcial:", bg="white").grid(row=0, column=4, padx=5, sticky="w")
+        tk.Spinbox(top_frame, from_=1, to=3, textvariable=self.parcial_var, width=5, command=self.cargar_tabla).grid(row=0, column=5, padx=5)
+
+        tk.Button(top_frame, text="Guardar", command=self.guardar_asistencias, bg="#2E5A88", fg="white").grid(row=0, column=6, padx=20)
+
+        # Línea divisoria
+        ttk.Separator(self, orient="horizontal").pack(fill="x", pady=10)
+
+        # Tabla de asistencia
+        self.tree = ttk.Treeview(self, columns=("Alumno", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes"), show="headings")
+        self.tree.pack(expand=True, fill="both", padx=10, pady=10)
+
+        for col in self.tree["columns"]:
             self.tree.heading(col, text=col)
             self.tree.column(col, width=120, anchor="center")
 
-        self.tree.pack(fill="both", expand=True)
-        self.tree.bind("<Button-1>", self.on_click)
-        self.popup = None
-
         self.cargar_tabla()
 
-        # ================== SELECCIÓN DE SEMANAS ==================
-        frame_semanas = tk.Frame(self, pady=10)
-        frame_semanas.pack(fill="x")
+        # Click simple para selección y edición
+        self.tree.bind("<ButtonRelease-1>", self.on_cell_click)
 
-        tk.Label(frame_semanas, text="Seleccionar Semana:").pack(side="left", padx=5)
-        for i, semana in enumerate(self.semanas):
-            btn = tk.Button(frame_semanas, text=semana, command=lambda idx=i: self.cambiar_semana(idx))
-            btn.pack(side="left", padx=5)
+        # Botones de semanas abajo
+        semanas_frame = tk.Frame(self, bg="white", pady=10)
+        semanas_frame.pack(fill="x", side="bottom")
+        tk.Label(semanas_frame, text="Cambiar semana:", bg="white").pack(side="left", padx=5)
+        for i in range(1, 5):
+            tk.Button(semanas_frame, text=f"Semana {i}", command=lambda s=i: self.cambiar_semana(s),
+                      bg="#2E5A88", fg="white", width=10).pack(side="left", padx=5)
 
-    def generar_datos_ejemplo(self):
-        alumnos = ["Carlos López", "María Torres", "Ana Gómez", "Luis Fernández"]
-        datos = {}
-        for p, _ in enumerate(self.parciales):
-            datos[p] = {}
-            for s, _ in enumerate(self.semanas):
-                datos[p][s] = {}
-                for alumno in alumnos:
-                    datos[p][s][alumno] = {dia: "" for dia in self.dias}
-        # Ejemplo inicial
-        datos[0][0]["Carlos López"]["Lunes"] = "A"
-        datos[0][0]["María Torres"]["Martes"] = "F"
-        return datos
+    def cambiar_semana(self, semana):
+        self.semana_var.set(semana)
+        self.cargar_tabla()
 
     def cargar_tabla(self):
-        self.tree.delete(*self.tree.get_children())
-        semana_data = self.datos[self.current_parcial][self.current_semana]
-        for alumno, dias in semana_data.items():
-            valores = [alumno] + [dias[dia] for dia in self.dias]
-            self.tree.insert("", "end", values=valores)
+        for item in self.tree.get_children():
+            self.tree.delete(item)
 
-    # ================== POPUP ==================
-    def on_click(self, event):
+        semana = self.semana_var.get()
+        parcial = self.parcial_var.get()
+        key = (semana, parcial)
+
+        # Generar las fechas de la semana actual (Lunes → Viernes)
+        hoy = datetime.date.today()
+        inicio_semana = hoy - datetime.timedelta(days=hoy.weekday())  # lunes
+        dias_semana = [(inicio_semana + datetime.timedelta(days=i)) for i in range(5)]
+        self.dias_semana = [d.strftime("%d/%m/%Y") for d in dias_semana]  # lista de claves
+
+        # Encabezados: "Lunes 16/09", etc.
+        self.tree["columns"] = ["Alumno"] + [f"{calendar.day_name[d.weekday()]} {d.strftime('%d/%m')}" for d in dias_semana]
+        self.tree.configure(show="headings")
+
+        for col in self.tree["columns"]:
+            self.tree.heading(col, text=col)
+            self.tree.column(col, width=130, anchor="center")
+
+        # Inicializar asistencias si no existen
+        if key not in self.asistencias:
+            self.asistencias[key] = {
+                alumno: {fecha: "" for fecha in self.dias_semana}
+                for alumno in self.alumnos
+            }
+
+        # Cargar filas
+        for alumno, dias in self.asistencias[key].items():
+            valores = [dias.get(fecha, "") for fecha in self.dias_semana]
+            self.tree.insert("", "end", values=[alumno] + valores)
+
+    def on_cell_click(self, event):
         region = self.tree.identify("region", event.x, event.y)
-        if region == "cell":
-            row_id = self.tree.identify_row(event.y)
-            col_id = self.tree.identify_column(event.x)
-            col_index = int(col_id.replace("#", "")) - 1
-            col_name = self.columnas[col_index]
-
-            # ✅ Solo permitir modificar el día actual
-            if col_name == self.dia_actual:
-                self.show_popup(event.x_root, event.y_root, row_id, col_id)
-
-    def show_popup(self, x, y, row_id, col_id):
-        if self.popup:
-            self.popup.destroy()
-        self.popup = tk.Toplevel(self)
-        self.popup.overrideredirect(True)
-        self.popup.geometry(f"+{x}+{y}")
-        opciones = {"A": "Asistencia", "F": "Falta", "R": "Retardo", "J": "Justificación"}
-        for i, key in enumerate(opciones.keys()):
-            b = tk.Button(self.popup, text=key, width=2, command=lambda k=key: self.set_value(row_id, col_id, k))
-            b.grid(row=0, column=i, padx=1, pady=1)
-        self.popup.bind("<FocusOut>", lambda e: self.popup.destroy())
-        self.popup.focus_set()
-
-    def set_value(self, row_id, col_id, value):
-        values = list(self.tree.item(row_id, "values"))
-        col_index = int(col_id.replace("#", "")) - 1
-        values[col_index] = value
-        self.tree.item(row_id, values=values)
-        alumno = values[0]
-        self.datos[self.current_parcial][self.current_semana][alumno][self.columnas[col_index]] = value
-        self.popup.destroy()
-
-    # ================== SEMANAS ==================
-    def cambiar_semana(self, idx):
-        self.current_semana = idx
-        self.cargar_tabla()
-
-    # ================== PARCIALES ==================
-    def cambiar_parcial(self, event):
-        self.current_parcial = self.combo_parcial.current()
-        self.cargar_tabla()
-
-    # ================== GUARDAR ==================
-    def guardar(self):
-        if not self.dia_actual:
-            messagebox.showwarning("Advertencia", "Hoy no es un día hábil (Lunes a Viernes).")
+        if region != "cell":
             return
 
-        dia_index = self.dias.index(self.dia_actual) + 1  # +1 porque #1 es Alumno
-        for row_id in self.tree.get_children():
-            values = list(self.tree.item(row_id, "values"))
-            if values[dia_index] == "":
-                values[dia_index] = "A7"  # ✅ Solo rellena la columna del día actual
-                alumno = values[0]
-                self.datos[self.current_parcial][self.current_semana][alumno][self.dia_actual] = "A7"
-            self.tree.item(row_id, values=values)
+        row_id = self.tree.identify_row(event.y)
+        col_id = self.tree.identify_column(event.x)
+        col_num = int(col_id.replace("#","")) - 1
+        if col_num == 0:
+            return
 
-        messagebox.showinfo("Guardado", f"Asistencias del día {self.dia_actual} guardadas en {self.semanas[self.current_semana]}, {self.parciales[self.current_parcial]}.")
+        alumno = self.tree.item(row_id)["values"][0]
+        fecha = self.dias_semana[col_num-1]  # Usar la fecha como clave
+
+        # Permitir edición solo del día actual
+        hoy_str = datetime.date.today().strftime("%d/%m/%Y")
+        if fecha != hoy_str:
+            return
+
+        self.tree.selection_set(row_id)
+        self.mostrar_opciones(row_id, col_num, alumno, fecha)
+
+    def mostrar_opciones(self, row_id, col_num, alumno, fecha):
+        menu = tk.Menu(self, tearoff=0)
+        for valor in ["A", "F", "R", "J"]:
+            menu.add_command(
+                label=valor,
+                command=lambda v=valor: self.set_valor(row_id, col_num, alumno, fecha, v)
+            )
+        menu.post(self.winfo_pointerx(), self.winfo_pointery())
+
+    def set_valor(self, row_id, col_num, alumno, fecha, valor):
+        semana = self.semana_var.get()
+        parcial = self.parcial_var.get()
+        key = (semana, parcial)
+
+        # Guardar el valor en el diccionario
+        self.asistencias[key][alumno][fecha] = valor
+
+        # Recargar tabla para mostrar cambios
+        self.cargar_tabla()
 
 
-if __name__ == "__main__":
-    app = AsistenciaApp()
-    app.mainloop()
+    def guardar_asistencias(self):
+        semana = self.semana_var.get()
+        parcial = self.parcial_var.get()
+        key = (semana, parcial)
+        hoy = datetime.date.today()
+        fecha_actual = hoy.strftime("%d/%m/%Y")
+        fecha_hora = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # Guardar solo asistencia del día actual
+        for alumno, dias in self.asistencias[key].items():
+            if dias.get(fecha_actual, "") == "":
+                dias[fecha_actual] = "A"
+
+        self.cargar_tabla()
+
+        asistencias_guardar = []
+        for e in self.estudiantes_json:
+            nombre_completo = f"{e['Nombre completo']} {e['Apellidos']}"
+            if nombre_completo in self.asistencias[key]:
+                asistencia_valor = self.asistencias[key][nombre_completo][fecha_actual]
+                asistencias_guardar.append({
+                    "Matricula": e["Matricula"],
+                    "Nombre": nombre_completo,
+                    "Materia": e.get("Materia", "No definida"),
+                    "Fecha": fecha_hora,
+                    "Dia": fecha_actual,
+                    "Asistencia": asistencia_valor
+                })
+
+        try:
+            with open("asistencias.json", "r", encoding="utf-8") as f:
+                data_existente = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            data_existente = []
+
+        data_existente.extend(asistencias_guardar)
+
+        with open("asistencias.json", "w", encoding="utf-8") as f:
+            json.dump(data_existente, f, indent=4, ensure_ascii=False)
+
+        print("Asistencias guardadas en asistencias.json ✅")
+
+# Función para mostrar la pantalla de asistencia en el panel derecho
+def mostrar_asistencia(right_frame, estudiantes_json):
+    # Limpiar panel derecho
+    for widget in right_frame.winfo_children():
+        widget.destroy()
+    # Crear frame de asistencia
+    PantallaAsistencia(right_frame, estudiantes_json)

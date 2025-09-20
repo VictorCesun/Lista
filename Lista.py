@@ -1,8 +1,10 @@
 import tkinter as tk
+import json
+import calendar
 from tkinter import ttk
 from PIL import Image, ImageTk
 from registro import RegistroEstudiantes
-from Pase_lista import AsistenciaApp
+from Pase_lista import PantallaAsistencia
 
 class SistemaAsistenciaApp(tk.Tk):
     def __init__(self):
@@ -10,6 +12,9 @@ class SistemaAsistenciaApp(tk.Tk):
         self.title("Sistema de Asistencia Cesun")
         self.geometry("1100x700")
         self.config(bg="#f0f0f0")
+        
+        self.estudiantes_json = self._cargar_estudiantes()
+        
 
         # Estructura de columnas
         self.columnconfigure(0, weight=1, minsize=250)
@@ -53,7 +58,7 @@ class SistemaAsistenciaApp(tk.Tk):
 
         def mostrar_asistencia():
             self._limpiar_panel()
-            AsistenciaApp(self.right_frame)
+            PantallaAsistencia(self.right_frame, self.estudiantes_json)
 
         def mostrar_lista():
             self._limpiar_panel()
@@ -80,6 +85,17 @@ class SistemaAsistenciaApp(tk.Tk):
     def _limpiar_panel(self):
         for widget in self.right_frame.winfo_children():
             widget.destroy()
+            
+    def _cargar_estudiantes(self):
+        try:
+            with open("estudiantes.json", "r", encoding="utf-8") as f:
+                return json.load(f)
+        except FileNotFoundError:
+            print("⚠ No se encontró el archivo estudiantes.json")
+            return []
+        except json.JSONDecodeError:
+            print("⚠ Error en el formato del archivo estudiantes.json")
+            return []
 
 if __name__ == "__main__":
     app = SistemaAsistenciaApp()

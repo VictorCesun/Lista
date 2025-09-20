@@ -1,0 +1,18 @@
+[
+    {
+        "Matricula": "220320230",
+        "Nombre": "Owen Perez Morales",
+        "Materia": "Calculo",
+        "Fecha": "2025-09-19 17:25:55",
+        "Dia": "19/09/2025",
+        "Asistencia": "A"
+    },
+    {
+        "Matricula": "220320230",
+        "Nombre": "Owen Perez Morales",
+        "Materia": "Calculo",
+        "Fecha": "2025-09-19 17:30:29",
+        "Dia": "19/09/2025",
+        "Asistencia": "F"
+    }
+]
